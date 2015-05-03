@@ -45,7 +45,7 @@ _multibootentry:
     movsb
   cld
   mov [multiboot_ptr - KZERO], ebx
-	mov ax, [_protected - KZERO]
+  mov ax, [_protected - KZERO]
   jmp [ax]
 
 ;; multiboot structure pointer (physical address)
