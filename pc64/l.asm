@@ -1,8 +1,6 @@
 %include "inc.asm"
 %include "mem.asm"
 
-[extern lowinitpml4]
-
 [section .multiboot]
 [global mboot]
 mboot:
@@ -20,16 +18,25 @@ mboot:
 	dd	0				;; depth
 
 [section .inittext]
-[BITS 32]
 [global start]
+[BITS 32]
 start:
+	; interrupts off
+	cli
+
+	; save multiboot pointer
+	mov	[multibootsig - KZERO], eax
+	or	ebx, 0x80000000
+	mov	[multibootptr - KZERO], ebx
+
 	mov	eax, cr4
 	or	eax, 0x80|0x20|0x10		; PGE, PAE, PSE
 	mov	cr4, eax
 
-	mov	eax, lowinitpml4
+	mov	eax, initpml4 - KZERO
 	mov	cr3, eax
 
+	mov	ecx, 0xC0000080
 	rdmsr
 	or	eax, (1 << 11)|(1 << 8)|(1 << 0); NXE, LME, SCE
 	wrmsr
@@ -38,16 +45,16 @@ start:
 	or	eax, 0x80010000			; PG & WP
 	mov	cr0, eax
 	lgdt	[gdtptr64p - KZERO]
-	jmp	0x08:start64
+	jmp	0x08:_identity
 
 [BITS 64]
-start64:
-	mov	rax, start64_higher
+_identity:
+	mov	rax, _start64v
 	jmp	rax
 
 [section .text]
 [extern main]
-start64_higher:
+_start64v:
 	lgdt	[DWORD gdtptr64v - KZERO]
 	mov	ax, 0x10
 	mov	ds, ax
@@ -56,6 +63,10 @@ start64_higher:
 	mov	fs, ax
 	mov	gs, ax
 
+	mov	rax, 0
+	push	rax
+	popfq
+
 	call	main
 died:
 	cli
@@ -63,52 +74,51 @@ died:
 	jmp	died
 
 [section .padata]
-[global initpml4]
-initpml4:
-	dd	initpdp - KZERO + 3, 0
-	times	0xA0*2-1 dq 0
+initpml4:	; Covers 256 TiB (Full 48-bit Virtual Address Space)
+	dd	initpdp - KZERO + 3, 0	; Identity Map Low 4Mb
+	times 0xA0*2-1	dq	0
+	; Stacks at 0xFFFFA...
 	dd	stackpdp - KZERO + 3, 0
-	times	512-4-($-initpml4)/8 dq 0
+	times 512-4-($-initpml4)/8	dq	0	; < dq until hit 512-4
 	dd	initpml4 - KZERO + 3, 0
 	dq	0
 	dq	0
-	dd	highpdp - KZERO + 3, 0
+	dd	highpdp - KZERO + 3, 0	; Map Low 4Mb to kernel base
 
-[global initpdp]
-initpdp:
+initpdp:	; Covers 512 GiB
 	dd	initpd - KZERO + 3, 0
-	times	511	dq 0
+	times 511	dq	0
 
 stackpdp:
 	dd	stackpd - KZERO + 3, 0
-	times	511	dq 0
+	times 511	dq	0
 
-highpdp:
-	times	510	dq 0
+highpdp:	; Covers 512 GiB
+	times 510	dq	0
 	dd	initpd - KZERO + 3, 0
 	dq	0
 
-[global initpd]
-initpd:
-	dd	0x000000 + 0x183, 0
-	dd	0x200000 + 0x183, 0
-	times	510	dq 0
+initpd:		; Covers 1 GiB
+	dd	0x000000 + 0x183,0	; Global, 2MiB
+	dd	0x200000 + 0x183,0	; Global, 2MiB
+	times 510	dq	0
 
 stackpd:
 	dd	kstackpt - KZERO + 3, 0
-	times	511	dq 0
+	times 511	dq	0
 
-kstackpt:
+kstackpt:	; Covers 2 MiB
+	; Initial stack - 64KiB
 	dq	0
 	%assign i 0
 	%rep KSTACK-1
 	dd	initkstack - KZERO + i*0x1000 + 0x103, 0
 	%assign i i+1
 	%endrep
-	times	512-KSTACK	dq 0
+	times 512-KSTACK	dq 0
 
 initkstack:
-	times	0x1000*(KSTACK-1)	db 0
+	times 0x1000*(KSTACK-1)	db 0	; 8 Pages
 
 [section .rodata]
 
@@ -117,7 +127,7 @@ initkstack:
 multibootptr:
 	dd	0, 0xFFFFFFFF
 
-s_multiboot_signature:
+multibootsig:
 	dd	0
 
 EXPORT gdt

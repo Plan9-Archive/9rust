@@ -12,8 +12,6 @@ SECTIONS {
 		*(.inittext)
 	}
 
-	lowinitpml4 = initpml4 - KZERO;
-
 	. += KZERO;
 
 	.text ALIGN(0x1000) : AT(ADDR(.text) - KZERO) {
