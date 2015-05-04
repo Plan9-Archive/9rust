@@ -1,42 +1,20 @@
 [section .text]
 
-extern _edata
-extern _end
-
-%define edata _edata
-%define end _end
-
 _protected:
   cli ; [CL]ear [I]nterrupts
-  mov EAX, _gdtptr32 wrt .text
+  mov ax, $-_gdtptr64p 
   mov ds, ax
   mov es, ax
   mov fs, ax
   mov gs, ax
   mov ss, ax
 
-  jmp far 0x6:(_warp64-KZERO)
+  ;; jmp far 0x6:0x0 ;:(_warp64-0x0)
   nop
 
-_multibootheader:
- dl 0x1BADB002                 ;; magic
- dl 0x00010003                 ;; flags
- dl -(0x1BADB002 + 0x00010003) ;; checksum
- dl _multibootheader-KZERO     ;; header_addr
- dl _protected-KZERO           ;; load_addr
- dl [_edata-KZERO]                ;; load_end_addr
- dl [_end-KZERO]                  ;; bss_end_addr
- dl _multibootentry            ;; entry_addr
- dl 0                          ;; mode_type
- dl 0                          ;; width
- dl 0                          ;; height
- dl 0                          ;; depth
-
 _multibootentry:
-  mov si, [_etext-KZERO]
+  mov si, [$]
   mov di, si
-  add di, [BY2PG-1]
-  add di, ![BY2PG-1]
   sub cx, di
   add si, cx
   add di, cx
@@ -44,9 +22,9 @@ _multibootentry:
   rep
     movsb
   cld
-  mov [multiboot_ptr - KZERO], ebx
-  mov ax, [_protected - KZERO]
-  jmp [ax]
+  mov [multibootptr - 0x0], ebx
+  mov ax, [_protected - 0x0]
+  jmp ax
 
 ;; multiboot structure pointer (physical address)
 multibootptr:
@@ -67,7 +45,7 @@ _gdt:
 
 _gdtptr64p:
 	dw	$-_gdt-1
-	dd	_gdt-KZERO
+	dd	_gdt-0x0
 
 _gdtptr64v:
 	dw	_gdtptr64p-_gdt-1
@@ -89,5 +67,23 @@ _gdtptr64v:
 ;; 	pop rax	; 1. Pop thread root method off stack
 ;; 	mov rdi, rsp	; 2. Set RDI to the object to call
 ;; 	jmp rax	; 3. Jump to the thread root method, which should never return
+
+section .data
+align 16
+_multibootheader:
+ dq 0x1BADB002                 ;; magic
+ dq 0x00010003                 ;; flags
+ dq -(0x1BADB002 + 0x00010003) ;; checksum
+ dq _multibootheader-0x0     ;; header_addr
+ dq _protected-0x0           ;; load_addr
+ dq $ ;; load_end_addr
+ dq $$ ;; bss_end_addr
+ dq _multibootentry            ;; entry_addr
+ dq 0                          ;; mode_type
+ dq 0                          ;; width
+ dq 0                          ;; height
+ dq 0                          ;; depth
+
+
 
 ; vim: ft=nasm
