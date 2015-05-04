@@ -5,6 +5,7 @@ RUSTC = rustc
 CC = gcc
 LD = ld
 AS = nasm
+OBJCOPY = objcopy
 QEMU = qemu-system-i386 -curses
 
 LDFLAGS = --gc-sections -T $(CONF).ld
@@ -21,18 +22,14 @@ RUSTFILES= \
 
 LIBCORE = libcore.rlib
 
-all: $(BUILDDIR) rust9front.bin
+all: 9$(CONF)
 
-$(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+9$(CONF): $(OBJ)
+	$(LD) $(LDFLAGS) -o $@.tmp $(OBJ)
+	$(OBJCOPY) $@.tmp -F elf32-i386 $@
+	rm -f $@.tmp
 
-rust9front.o: l.asm
-	$(AS) -f elf32 -Wall -o $@ $<
-
-rust9front.bin: $(OBJ)
-	$(LD) $(LDFLAGS) -o $@ $(OBJ)
-
-debug: rust9front.bin
+debug: 9$(CONF)
 	$(QEMU) -s -S -kernel $<
 
 $(CONF).o: $(CONF).rs $(LIBCORE)
