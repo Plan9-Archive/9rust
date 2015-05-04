@@ -1,6 +1,8 @@
 %include "inc.asm"
 %include "mem.asm"
 
+[extern lowinitpml4]
+
 [section .multiboot]
 [global mboot]
 mboot:
@@ -24,6 +26,9 @@ start:
 	mov	eax, cr4
 	or	eax, 0x80|0x20|0x10		; PGE, PAE, PSE
 	mov	cr4, eax
+
+	mov	eax, lowinitpml4
+	mov	cr3, eax
 
 	rdmsr
 	or	eax, (1 << 11)|(1 << 8)|(1 << 0); NXE, LME, SCE
@@ -56,6 +61,56 @@ died:
 	cli
 	hlt
 	jmp	died
+
+[section .padata]
+[global initpml4]
+initpml4:
+	dd	initpdp - KZERO + 3, 0
+	times	0xA0*2-1 dq 0
+	dd	stackpdp - KZERO + 3, 0
+	times	512-4-($-initpml4)/8 dq 0
+	dd	initpml4 - KZERO + 3, 0
+	dq	0
+	dq	0
+	dd	highpdp - KZERO + 3, 0
+
+[global initpdp]
+initpdp:
+	dd	initpd - KZERO + 3, 0
+	times	511	dq 0
+
+stackpdp:
+	dd	stackpd - KZERO + 3, 0
+	times	511	dq 0
+
+highpdp:
+	times	510	dq 0
+	dd	initpd - KZERO + 3, 0
+	dq	0
+
+[global initpd]
+initpd:
+	dd	0x000000 + 0x183, 0
+	dd	0x200000 + 0x183, 0
+	times	510	dq 0
+
+stackpd:
+	dd	kstackpt - KZERO + 3, 0
+	times	511	dq 0
+
+kstackpt:
+	dq	0
+	%assign i 0
+	%rep KSTACK-1
+	dd	initkstack - KZERO + i*0x1000 + 0x103, 0
+	%assign i i+1
+	%endrep
+	times	512-KSTACK	dq 0
+
+initkstack:
+	times	0x1000*(KSTACK-1)	db 0
+
+[section .rodata]
 
 ;; multiboot structure pointer (physical address)
 [section .data]

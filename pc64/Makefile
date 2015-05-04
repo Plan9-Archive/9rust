@@ -6,10 +6,10 @@ CC = gcc
 LD = ld
 AS = nasm
 OBJCOPY = objcopy
-QEMU = qemu-system-i386 -curses
+QEMU = qemu-system-x86_64 -curses
 
-LDFLAGS = --gc-sections -T $(CONF).ld
-RUSTFLAGS = -C soft-float -O --target=$(CONF).json
+LDFLAGS = --gc-sections -z max-page-size=0x1000 -T $(CONF).ld
+RUSTFLAGS = -C soft-float -g -O --target=$(CONF).json
 
 OBJ= \
 	$(CONF).o \
@@ -26,7 +26,8 @@ all: 9$(CONF)
 
 9$(CONF): $(OBJ)
 	$(LD) $(LDFLAGS) -o $@.tmp $(OBJ)
-	$(OBJCOPY) $@.tmp -F elf32-i386 $@
+	$(OBJCOPY) --strip-debug -F elf32-i386 $@.tmp $@
+	$(OBJCOPY) --only-keep-debug $@.tmp $@.sym
 	rm -f $@.tmp
 
 debug: 9$(CONF)
@@ -45,5 +46,5 @@ libcore.rlib: libcore/lib.rs
 	$(RUSTC) $(RUSTFLAGS) -o $@ --crate-type=lib --emit=link,dep-info $<
 
 clean:
-	rm -f *.d *.rlib *.o *.bin
+	rm -f 9$(CONF) *.sym *.d *.rlib *.o *.bin
 

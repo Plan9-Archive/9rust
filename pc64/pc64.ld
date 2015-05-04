@@ -12,6 +12,8 @@ SECTIONS {
 		*(.inittext)
 	}
 
+	lowinitpml4 = initpml4 - KZERO;
+
 	. += KZERO;
 
 	.text ALIGN(0x1000) : AT(ADDR(.text) - KZERO) {
@@ -28,7 +30,8 @@ SECTIONS {
 	/* Read-write data, page aligned for the .padata section */
 	.data ALIGN(0x1000) : AT(ADDR(.data) - KZERO) {
 		*(.padata)
-		*(.data .data.*)
+		*(.data)
+		*(.data.*)
 	}
 
 	edata = .;
