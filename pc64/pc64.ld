@@ -1,7 +1,7 @@
-KZERO = 0xffffffff80000000
-
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(start)
+
+KZERO = 0xffffffff80000000;
 
 SECTIONS {
 	. = 0x100000;

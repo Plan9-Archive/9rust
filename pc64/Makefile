@@ -39,7 +39,7 @@ $(CONF).o: $(CONF).rs $(LIBCORE)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 %.o: %.asm
-	$(AS) -Wall -o $@ $< $(ASFLAGS)
+	$(AS) -f elf64 -Wall -o $@ $< $(ASFLAGS)
 
 libcore.rlib: libcore/lib.rs
 	$(RUSTC) $(RUSTFLAGS) -o $@ --crate-type=lib --emit=link,dep-info $<
