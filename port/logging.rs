@@ -52,7 +52,7 @@ impl fmt::Write for Writer
 		if self.0
 		{
 			unsafe {
-				::debug::puts( s );
+				::pc::debug::puts( s );
 			}
 		}
 		Ok( () )

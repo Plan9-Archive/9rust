@@ -17,13 +17,13 @@ pub unsafe fn puts(s: &str)
 pub unsafe fn putb(b: u8)
 {
 	// Wait for the serial port's fifo to not be empty
-	while (::io::inb(0x3F8+5) & 0x20) == 0
+	while (::pc::io::inb(0x3F8+5) & 0x20) == 0
 	{
 		// Do nothing
 	}
 	// Send the byte out the serial port
-	::io::outb(0x3F8, b);
+	::pc::io::outb(0x3F8, b);
 	
 	// Also send to the bochs 0xe9 hack
-	::io::outb(0xe9, b);
+	::pc::io::outb(0xe9, b);
 }

@@ -15,11 +15,6 @@ OBJ= \
 	$(CONF).o \
 	l.o\
 
-RUSTFILES= \
-	macros.rs \
-	unwind.rs \
-	main.rs \
-
 LIBCORE = libcore.rlib
 
 all: 9$(CONF)
@@ -34,7 +29,7 @@ debug: 9$(CONF)
 	$(QEMU) -s -S -kernel $< -serial stdio
 
 $(CONF).o: $(CONF).rs $(LIBCORE)
-	$(RUSTC) $(RUSTFLAGS) -o $@ --emit=obj,dep-info $< --extern core=$(LIBCORE)
+	$(RUSTC) $(RUSTFLAGS) -o $@ --emit=obj $< --extern core=$(LIBCORE)
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -43,7 +38,7 @@ $(CONF).o: $(CONF).rs $(LIBCORE)
 	$(AS) -f elf64 -Wall -o $@ $< $(ASFLAGS)
 
 libcore.rlib: libcore/lib.rs
-	$(RUSTC) $(RUSTFLAGS) -o $@ --crate-type=lib --emit=link,dep-info $<
+	$(RUSTC) $(RUSTFLAGS) -o $@ --crate-type=lib --emit=link $<
 
 clean:
 	rm -f 9$(CONF) *.sym *.d *.rlib *.o *.bin

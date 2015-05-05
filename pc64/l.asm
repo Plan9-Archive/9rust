@@ -124,9 +124,11 @@ initkstack:
 
 ;; multiboot structure pointer (physical address)
 [section .data]
+[global multibootptr]
 multibootptr:
 	dd	0, 0xFFFFFFFF
 
+[global multibootsig]
 multibootsig:
 	dd	0
 
